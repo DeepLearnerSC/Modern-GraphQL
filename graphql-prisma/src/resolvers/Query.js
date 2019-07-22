@@ -1,7 +1,19 @@
 const Query = {
     // users(parent, args, { db }, info) {
     users(parent, args, { prisma }, info) {
-        return prisma.query.users(null, info)
+        const opArgs = {}
+        
+        if (args.query) {
+            opArgs.where = {
+                OR: [{
+                    name_contains: args.query
+                }, {
+                    email_contains: args.query
+                }]
+            }
+        }
+
+        return prisma.query.users(opArgs, info)
 
         // if (!args.query) {
         //     return db.users
@@ -13,8 +25,19 @@ const Query = {
     },
     // posts(parent, args, { db }, info) {
     posts(parent, args, { prisma }, info) {
+        const opArgs = {}
 
-        return prisma.query.posts(null, info)
+        if (args.query) {
+            opArgs.where = {
+                OR: [{
+                    title_contains: args.query
+                }, {
+                    body_contains: args.query
+                }]
+            }
+        }
+
+        return prisma.query.posts(opArgs, info)
 
         // if (!args.query) {
         //     return db.posts
