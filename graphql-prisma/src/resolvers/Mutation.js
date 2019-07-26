@@ -2,14 +2,21 @@ import uuidv4 from 'uuid/v4'
 
 const Mutation = {
     async createUser(parent, args, { prisma }, info) {
-        const emailTaken = await prisma.exists.User({ email: args.data.email })
-
-        if (emailTaken) {
-            throw new Error('Email taken')
-        }
-
         return prisma.mutation.createUser({ data: args.data }, info)
     },
+
+    // version 2ß
+    // async createUser(parent, args, { prisma }, info) {
+    //     const emailTaken = await prisma.exists.User({ email: args.data.email })
+
+    //     if (emailTaken) {
+    //         throw new Error('Email taken')
+    //     }
+
+    //     return prisma.mutation.createUser({ data: args.data }, info)
+    // },
+
+    //db
     // createUser(parent, args, { db }, info) {
     //     const emailTaken = db.users.some((user) => user.email === args.data.email)
 
@@ -29,19 +36,28 @@ const Mutation = {
 
     //     return user
     // },
+
     async deleteUser(parent, args, { prisma }, info) {
-        const userExists = await prisma.exists.User({ id: args.id })
-
-        if (!userExists) {
-            throw new Error('User not found')
-        }
-
         return prisma.mutation.deleteUser({
             where: {
                 id: args.id
             }
         }, info)
     },
+
+    // async deleteUser(parent, args, { prisma }, info) {
+    //     const userExists = await prisma.exists.User({ id: args.id })
+
+    //     if (!userExists) {
+    //         throw new Error('User not found')
+    //     }
+
+    //     return prisma.mutation.deleteUser({
+    //         where: {
+    //             id: args.id
+    //         }
+    //     }, info)
+    // },
     // deleteUser(parent, args, { db }, info) {
     //     const userIndex = db.users.findIndex((user) => user.id === args.id)
 
@@ -64,63 +80,89 @@ const Mutation = {
 
     //     return deletedUsers[0]
     // },
-    updateUser(parent, args, { db }, info) {
-        const { id, data } = args
-        const user = db.users.find((user) => user.id === id)
 
-        if (!user) {
-            throw new Error('User not found')
-        }
-
-        if (typeof data.email === 'string') {
-            const emailTaken = db.users.some((user) => user.email === data.email)
-
-            if (emailTaken) {
-                throw new Error('Email taken')
-            }
-
-            user.email = data.email
-        }
-
-        if (typeof data.name === 'string') {
-            user.name = data.name
-        }
-
-        if (typeof data.age !== 'undefined') {
-            user.age = data.age
-        }
-
-        return user
+    async updateUser(parent, args, { prisma }, info) {
+        return prisma.mutation.updateUser({
+            where: {
+                id: args.id
+            },
+            data: args.data
+        }, info)
     },
-    createPost(parent, args, { db, pubsub }, info) {
-        const userExists = db.users.some((user) => user.id === args.data.author)
 
-        if (!userExists) {
-            throw new Error('User not found')
-        }
+    // updateUser(parent, args, { db }, info) {
+    //     const { id, data } = args
+    //     const user = db.users.find((user) => user.id === id)
 
-        const post = {
-            id: uuidv4(),
-            ...args.data
-            // title: args.title,
-            // body: args.body,
-            // published: args.published,
-            // author: args.author
-        }
+    //     if (!user) {
+    //         throw new Error('User not found')
+    //     }
 
-        db.posts.push(post)
+    //     if (typeof data.email === 'string') {
+    //         const emailTaken = db.users.some((user) => user.email === data.email)
 
-        if (args.data.published) {
-            pubsub.publish('post', { 
-                post: {
-                    mutation: 'CREATED',
-                    data: post
+    //         if (emailTaken) {
+    //             throw new Error('Email taken')
+    //         }
+
+    //         user.email = data.email
+    //     }
+
+    //     if (typeof data.name === 'string') {
+    //         user.name = data.name
+    //     }
+
+    //     if (typeof data.age !== 'undefined') {
+    //         user.age = data.age
+    //     }
+
+    //     return user
+    // },
+
+    //POST
+    createPost(parent, args, { prisma }, info) {
+        return prisma.mutation.createPost({
+            data: {
+                title: args.data.title,
+                body: args.data.body,
+                published: args.data.published,
+                author: {
+                    connect: {
+                        id: args.data.author
+                    }
                 }
-            })
-        }
-
-        return post
+            }
+        }, info)
     },
+    // createPost(parent, args, { db, pubsub }, info) {
+    //     const userExists = db.users.some((user) => user.id === args.data.author)
+
+    //     if (!userExists) {
+    //         throw new Error('User not found')
+    //     }
+
+    //     const post = {
+    //         id: uuidv4(),
+    //         ...args.data
+    //         // title: args.title,
+    //         // body: args.body,
+    //         // published: args.published,
+    //         // author: args.author
+    //     }
+
+    //     db.posts.push(post)
+
+    //     if (args.data.published) {
+    //         pubsub.publish('post', { 
+    //             post: {
+    //                 mutation: 'CREATED',
+    //                 data: post
+    //             }
+    //         })
+    //     }
+
+    //     return post
+    // },
     deletePost(parent, args, { db }, info) {
         const postIndex = db.posts.findIndex((post) => post.id === args.id)
 
