@@ -1,11 +1,31 @@
 // import uuidv4 from 'uuid/v4'
-
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-// Take in password -> Validate password -> Hash password -> Generate auth token
-
 const Mutation = {
+    async login(parent, args, { prisma }, info) {
+        const user = await prisma.query.user({
+            where: {
+                email: args.data.email
+            }
+        })
+
+        if (!user) {
+            throw new Error('Unable to login')
+        }
+
+        const isMatch = await bcrypt.compare(args.data.password, user.password)
+
+        if (!isMatch) {
+            throw new Error('Unable to login')
+        }
+
+        return {
+            user,
+            token: jwt.sign({ userId: user.id }, 'supersecretbro')
+        }
+    },
+
     // createUser(parent, args, { db }, info) {
     //     const emailTaken = db.users.some((user) => user.email === args.data.email)
 
