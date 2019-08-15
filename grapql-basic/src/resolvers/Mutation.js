@@ -1,24 +1,68 @@
-import uuidv4 from 'uuid/v4'
+// import uuidv4 from 'uuid/v4'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 const Mutation = {
-    createUser(parent, args, { db }, info) {
-        const emailTaken = db.users.some((user) => user.email === args.data.email)
+    async login(parent, args, { prisma }, info) {
+        const user = await prisma.query.user({
+            where: {
+                email: args.data.email
+            }
+        })
 
-        if (emailTaken) {
-            throw new Error('Email taken')
+        if (!user) {
+            throw new Error('Unable to login')
         }
 
-        const user = {
-            id: uuidv4(),
-            ...args.data
-            // name: args.name,
-            // email: args.email,
-            // age: args.age
+        const isMatch = await bcrypt.compare(args.data.password, user.password)
+
+        if (!isMatch) {
+            throw new Error('Unable to login')
         }
 
-        db.users.push(user)
+        return {
+            user,
+            token: jwt.sign({ userId: user.id }, 'supersecretbro')
+        }
+    },
 
-        return user
+    // createUser(parent, args, { db }, info) {
+    //     const emailTaken = db.users.some((user) => user.email === args.data.email)
+
+    //     if (emailTaken) {
+    //         throw new Error('Email taken')
+    //     }
+
+    //     const user = {
+    //         id: uuidv4(),
+    //         ...args.data
+    //         // name: args.name,
+    //         // email: args.email,
+    //         // age: args.age
+    //     }
+
+    //     db.users.push(user)
+
+    //     return user
+    // },
+    async createUser(parent, args, { prisma }, info) {
+        if (args.data.password.length < 8) {
+            throw new Error('Password must be 8 characters or longer.')
+        }
+
+        const password = await bcrypt.hash(args.data.password, 10)
+
+        const user = await prisma.mutation.createUser({
+            data: {
+                ...args.data,
+                password
+            }
+        })
+
+        return {
+            user,
+            token: jwt.sign({ userId: user.id }, 'supersecretbro')
+        }
     },
     deleteUser(parent, args, { db }, info) {
         const userIndex = db.users.findIndex((user) => user.id === args.id)
